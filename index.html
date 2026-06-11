@@ -3,23 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agro Forte - Recuperação de Solo</title>
+    <title>AgroSurf: Futuro Sustentável</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>Agro Forte</h1>
-    <p class="subtitle">Recupere o solo destruído usando a tecnologia ao seu favor!</p>
+    <header>
+        <div class="logo">🌾 Agro<span>Surf</span></div>
+        <nav>
+            <ul>
+                <li><a href="#jogo" class="active">Jogar</a></li>
+                <li><a href="#instrucoes">Como Funciona</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <div id="game-container">
-        <div id="player">🧑‍🌾</div>
-        <div id="tractor">🚜 TRATOR</div>
+    <main>
+        <section id="jogo-container">
+            <div class="game-info">
+                <h2>EcoCorrida: Salve o Solo!</h2>
+                <p>Desvie das pragas e colha recursos para recuperar a terra.</p>
+            </div>
+
+            <div class="canvas-container">
+                <div class="hud">
+                    <div>Recursos: <span id="score">0</span></div>
+                    <div>Velocidade: <span id="speed-indicator">Normal</span></div>
+                </div>
+
+                <div id="game-screen">
+                    <div class="fazenda-bg"></div>
+                    
+                    <div class="pistas">
+                        <div class="linha"></div>
+                        <div class="linha"></div>
+                        <div class="linha"></div>
+                    </div>
+
+                    <div id="player" class="pos-centro">👨‍🌾</div>
+                    <div id="praga">🪲</div>
+                    <div id="obstaculo">🚜</div>
+                    <div id="recurso">🌱</div>
+                </div>
+
+                <div class="mobile-controls">
+                    <button id="btn-left">⬅️ Esquerda</button>
+                    <button id="btn-right">Direita ➡️</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="instrucoes">
+            <h3>Como Jogar e Aprender</h3>
+            <div class="cards-container">
+                <div class="card">
+                    <h4>Controles</h4>
+                    <p>Use as setas do teclado (⬅️ / ➡️) ou os botões na tela do celular para mudar de pista.</p>
+                </div>
+                <div class="card">
+                    <h4>Desafio do Solo</h4>
+                    <p>Ao coletar um recurso (🌱), um quiz aparecerá. Acerte para purificar o solo e ganhar pontos; erre e a praga se aproximará!</p>
+                </div>
+                <div class="card">
+                    <h4>Obstáculos</h4>
+                    <p>Cuidado com os tratores (🚜) e maquinários agrícolas no caminho!</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="quiz-modal" class="modal-hide">
+        <div class="modal-content">
+            <h3 id="quiz-pergunta">Pergunta sobre Agro sustentável?</h3>
+            <div class="quiz-options">
+                <button class="btn-opcao" onclick="verificarResposta(0)" id="op0">Opção A</button>
+                <button class="btn-opcao" onclick="verificarResposta(1)" id="op1">Opção B</button>
+            </div>
+            <p id="feedback" class="feedback-texto"></p>
+        </div>
     </div>
 
-    <div class="controls">
-        <p><strong>Controles:</strong> Use as setas do teclado (⬅️ ➡️ ⬆️ ⬇️) para movimentar o personagem.</p>
-        <p id="status">Status: Vá até o trator para começar a restaurar o solo degradado!</p>
-    </div>
+    <footer>
+        <p>&copy; 2026 AgroSurf - Tecnologia e Sustentabilidade no Campo. Ensino Médio Técnico.</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
