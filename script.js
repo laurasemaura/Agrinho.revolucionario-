@@ -1,29 +1,33 @@
 // BANCO DE PERGUNTAS DO QUIZ (AGRO SUSTENTÁVEL)
 const bancoPerguntas = [
     {
-        pergunta: "Qual técnica evita a erosão deixando restos da colheita anterior no solo?",
-        opcoes: ["Plantio Direto", "Queimada Controlada"],
-        correta: 0
-    },
-    {
-        pergunta: "Mudar as culturas de lugar a cada safra para nutrir a terra chama-se:",
-        opcoes: ["Monocultura", "Rotação de Culturas"],
+        pergunta: "Qual é a composição básica do solo?",
+        opcoes: [´"apenas fragmentos de rocha e água", "minerais, matéria orgânica, água e ar"],
         correta: 1
     },
     {
-        pergunta: "Qual bicho ajuda naturalmente a arejar e fertilizar a terra?",
-        opcoes: ["Lagarta", "Minhoca"],
-        correta: 1
-    },
-    {
-        pergunta: "O uso de drones no campo serve para economizar água e defensivos?",
-        opcoes: ["Sim, Agricultura de Precisão", "Não, é só para filmar"],
+        pergunta: "Qual componente do solo é proveniente da decomposição de resíduos orgânicos?:",
+        opcoes: ["húmus", "silte"],
         correta: 0
     },
     {
-        pergunta: "que cor é o ceú?",
-        opcoes: ["verde", "azul"],
-        correta:1
+        pergunta: "Qual tipo de solo apresenta a maior capacidade de retenção de água?",
+        opcoes: ["solo arenoso", "solo argiloso"],
+        correta: 1
+    },
+    {
+        pergunta: "O que é a "porosidade" do solo?",
+        opcoes: ["O espaço vazio no solo ocupado por ar e água", "A quantidade de pedras na superfície"],
+        correta: 0
+    },
+    {
+        pergunta: "Qual é a função do pH do solo na agricultura?",
+        opcoes: ["Indicar a acidez ou alcalinidade, influenciando a disponibilidade de nutrientes", "Medir a temperatura interna da terra durante a noite"],
+        correta:0
+    },
+    {
+        
+
     }
 ];
 
