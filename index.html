@@ -3,114 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgroSurf: Futuro Sustentável</title>
+    <title>Agro Surfers</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <header>
-        <div class="logo">🌾 Agro<span>Surf</span></div>
-        <nav>
-            <ul>
-                <li><a href="#jogo" class="active">Jogar</a></li>
-                <li><a href="#instrucoes">Como Funciona</a></li>
-            </ul>
-        </nav>
-    </header>
+    <div id="game-container">
+        <!-- PAINEL SUPERIOR -->
+        <div id="hud">
+            <div>Pontos: <span id="score">0</span> <span id="multiplier-tag"></span></div>
+            <div>Moedas: <span id="coins">0</span> 🪙</div>
+            <div id="speed-indicator">Fase 1</div>
+        </div>
 
-    <main>
-        <section id="jogo-container">Mais perguntas;
+        <!-- INDICADORES DE POWER-UPS ATIVOS -->
+        <div id="powerup-status"></div>
 
-O jogo trava na mesma pergunta;
-
-A pergunta fica por quase 15 segundas depois de acertar;
-
-adicionar uma chuvinha de moedas que representam os pontos toda vez que pega uma planta;
-
-aumentar a velocidade conforme for avançando;
-
-coletar um numero X de plantas para desbloquear a proxima fase;
-
-juntando moedas e plantas você pode desbloquear recursos para a fazenda (solo);
-
-fugir de uma big praga;
-
-se a praga te pegar você tem que responder 3 perguntas para reviver, se errar perde tudo e o jogo reinicia;
-
-adicionar pragas e obstaculos para ficar mais dificil;
-
-duplicador de pontos, 15 segundos na tela;
-
-pedaços de solo arenoso;
-
-desviar de máquinas como: Trator de esteira, Enxada rotativa Escavadeir
-            <div class="game-info">
-                <h2>EcoCorrida: Salve o Solo!</h2>
-                <p>Desvie das pragas e colha recursos para recuperar a terra.</p>
+        <!-- CENÁRIO 3D / PERSPECTIVA -->
+        <div id="world">
+            <div class="pistas-container" id="chao">
+                <div class="pista"></div>
+                <div class="pista"></div>
+                <div class="pista"></div>
             </div>
 
-            <div class="canvas-container">
-                <div class="hud">
-                    <div>Recursos: <span id="score">0</span></div>
-                    <div>Velocidade: <span id="speed-indicator">Normal</span></div>
-                </div>
+            <!-- ELEMENTOS DO JOGO -->
+            <div id="praga" class="pos-centro">🐛</div>
+            <div id="player" class="pos-centro">🏃</div>
+            <div id="obstaculo">🚜</div>
+            <div id="recurso">🌱</div>
+            <div id="item-especial">🧲</div>
+        </div>
 
-                <div id="game-screen">
-                    <div class="fazenda-bg"></div>
-                    
-                    <div class="pistas">
-                        <div class="linha"></div>
-                        <div class="linha"></div>
-                        <div class="linha"></div>
-                    </div>
+        <!-- CONTROLES NA TELA -->
+        <div id="controls">
+            <button id="btn-left">◀</button>
+            <button id="btn-shop">🛒</button>
+            <button id="btn-right">▶</button>
+        </div>
 
-                    <div id="player" class="pos-centro">👨‍🌾</div>
-                    <div id="praga">🪲</div>
-                    <div id="obstaculo">🚜</div>
-                    <div id="recurso">🌱</div>
-                </div>
-
-                <div class="mobile-controls">
-                    <button id="btn-left">⬅️ Esquerda</button>
-                    <button id="btn-right">Direita ➡️</button>
-                </div>
+        <!-- MODAL DO QUIZ -->
+        <div id="quiz-modal" class="modal-hide">
+            <div class="quiz-box">
+                <h2 id="quiz-pergunta">Pergunta aqui...</h2>
+                <button id="op0" class="btn-opcao" onclick="verificarResposta(0)">Opção 1</button>
+                <button id="op1" class="btn-opcao" onclick="verificarResposta(1)">Opção 2</button>
+                <div id="feedback"></div>
             </div>
-        </section>
+        </div>
 
-        <section id="instrucoes">
-            <h3>Como Jogar e Aprender</h3>
-            <div class="cards-container">
-                <div class="card">
-                    <h4>Controles</h4>
-                    <p>Use as setas do teclado (⬅️ / ➡️) ou os botões na tela do celular para mudar de pista.</p>
+        <!-- MODAL DA LOJA DA FAZENDA -->
+        <div id="shop-modal" class="modal-hide">
+            <div class="shop-box">
+                <h2>Loja da Fazenda 🚜</h2>
+                <p>Suas Moedas: <span id="shop-coins">0</span> 🪙</p>
+                <hr>
+                <div class="shop-item">
+                    <span>🌱 Mudas Especiais (+Pontos)</span>
+                    <button onclick="comprarItem('muda', 30)">30 🪙</button>
                 </div>
-                <div class="card">
-                    <h4>Desafio do Solo</h4>
-                    <p>Ao coletar um recurso (🌱), um quiz aparecerá. Acerte para purificar o solo e ganhar pontos; erre e a praga se aproximará!</p>
+                <div class="shop-item">
+                    <span>🧪 Fertilizante Turbo</span>
+                    <button onclick="comprarItem('fertilizante', 50)">50 🪙</button>
                 </div>
-                <div class="card">
-                    <h4>Obstáculos</h4>
-                    <p>Cuidado com os tratores (🚜) e maquinários agrícolas no caminho!</p>
+                <div class="shop-item">
+                    <span>🚜 Trator Novo</span>
+                    <button onclick="comprarItem('trator', 100)">100 🪙</button>
                 </div>
+                <button id="btn-close-shop" class="btn-fechar">Voltar ao Jogo</button>
             </div>
-        </section>
-    </main>
-
-    <div id="quiz-modal" class="modal-hide">
-        <div class="modal-content">
-            <h3 id="quiz-pergunta">Pergunta sobre Agro sustentável?</h3>
-            <div class="quiz-options">
-                <button class="btn-opcao" onclick="verificarResposta(0)" id="op0">Opção A</button>
-                <button class="btn-opcao" onclick="verificarResposta(1)" id="op1">Opção B</button>
-            </div>
-            <p id="feedback" class="feedback-texto"></p>
         </div>
     </div>
 
-    <footer>
-        <p>&copy; 2026 AgroSurf - Tecnologia e Sustentabilidade no Campo. Ensino Médio Técnico.</p>
-    </footer>
-
+    <!-- ÁUDIO E LÓGICA DO JOGO -->
     <script src="script.js"></script>
 </body>
 </html>
