@@ -210,18 +210,6 @@ correta: 0},
 "O sistêmico é aplicado via irrigação; o de contato é aplicado via solo."],
 correta: 1},
 
-  {pergunta: "Qual é o principal objetivo do processo de ensilagem (silagem) na pecuária?",
-opcoes: ["secar seragté virar pó para consumo imediato.",
-      ""Preservar a forragem úmida por meio da fermentação anaeróbica para épocas de seca.",
-      "Esterilizar o capim para eliminar bactérias benéficas."
-    ],
-    "correta": 1}
-
-
-
-
-
-
 ];
 
 let perguntasRestantes = [...bancoPerguntas];
