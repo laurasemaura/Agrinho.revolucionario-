@@ -154,14 +154,70 @@ correta: 0 },
 correta: 0},
 
 {pergunta:"Qual é o maior desafio para digitalizar e modernizar a gestão no campo hoje?",
-opcoes:["Qual é o maior desafio para digitalizar e modernizar a gestão no campo hoje?",
+opcoes:[",A resistência cultural à mudança de processos tradicionais que já funcionam há gerações",
 "A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas"],
-correta: 1},
+correta: 0},
 
-{pergunta: "A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas",
-opcoes:["A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas", 
+{pergunta: "Quais práticas de manejo sustentável ou conservação do solo você adota na sua produção?",
+opcoes:["O uso de plantas de cobertura para retenção de umidade e proteção contra a erosão.", 
 "o plantio direto rigoroso combinado com a rotação de culturas para manter a biologia do solo ativa"],
 correta: 1}
+
+{pergunta: "Quais estratégias têm sido usadas na sua região para enfrentar as mudanças climáticas e períodos de estiagem?",
+opcoes: [" Investimento em irrigação eficiente e construção de reservatórios de água na propriedade",
+"Escolha de variedades e cultivares mais resistentes ao estresse hídrico"]
+correta: 0}
+
+{ pergunta: "Qual é a função do estômato nas folhas das plantas?",
+opcoes: ["Absorver nutrientes minerais diretamente da atmosfera.",
+"Realizar trocas gasosas e controlar a transpiração da planta.",
+ "Fixar a planta ao solo e armazenar reservas de amido." ],
+correta: 1}
+
+{pergunta: "O que é a fotossíntese nas plantas agrícolas?",
+opcoes: ["Processo de conversão de luz solar, água e CO2 em açúcares e oxigênio.",
+ "Degradação da matéria orgânica do solo pelas raízes.",
+ "Absorção de defensivos químicos através das folhas durante a noite."],
+correta: 0}
+
+{pergunta: "O que significa o termo \"fenologia\" de uma cultura agrícola?",
+opcoes: ["O estudo da composição química dos fertilizantes.",
+"O estudo dos estágios de desenvolvimento da planta ao longo do tempo.",
+"A medição do nível de umidade dos grãos no armazém."], 
+correta: 1}
+
+{pergunta: "O que significa o termo \"fenologia\" de uma cultura agrícola?",
+opcoes: ["O estudo da composição química dos fertilizantes.",
+"O estudo dos estágios de desenvolvimento da planta ao longo do tempo.",
+"A medição do nível de umidade dos grãos no armazém."],
+correta: 1},
+
+  {pergunta: "O que define o Manejo Integrado de Pragas (MIP)?",
+opcoes: ["A aplicação semanal e preventiva de defensivos químicos em toda a área.",
+"A combinação de métodos biológicos, culturais e químicos baseada no monitoramento.",
+"A eliminação total de todos os insetos presentes na lavoura." ],
+correta: 1 },
+ 
+{pergunta: "Qual é o principal vetor de transmissão do vírus do enfezamento no milho?",
+opcoes: ["Cigarrinha-do-milho (Dalbulus maidis).",
+"Lagarta-do-cartucho (Spodoptera frugiperda).",
+"Percevejo-marrom (Euschistus heros)."],
+correta: 0},
+
+  {pergunta: "Qual é a diferença entre um fungicida sistêmico e um fungicida de contato?",
+    "opcoes": ["O sistêmico mata insetos; o de contato mata fungos.",
+"O sistêmico é absorvido e circula pela planta; o de contato protege a superfície onde foi aplicado.",
+"O sistêmico é aplicado via irrigação; o de contato é aplicado via solo."],
+correta: 1},
+
+  {pergunta: "Qual é o principal objetivo do processo de ensilagem (silagem) na pecuária?",
+opcoes: ["secar seragté virar pó para consumo imediato.",
+      ""Preservar a forragem úmida por meio da fermentação anaeróbica para épocas de seca.",
+      "Esterilizar o capim para eliminar bactérias benéficas."
+    ],
+    "correta": 1}
+
+
 
 
 
@@ -244,7 +300,7 @@ function iniciarCiclo() {
     recurso.className = classesPistas[pistaRec] + " animar-objeto";
 
     const checarColisao = setInterval(() => {
-        if (jogoPausado) return;
+        if (jogoPausado) return;forragem
 
         const topoObs = obstaculo.offsetTop;
         const topoRec = recurso.offsetTop;
