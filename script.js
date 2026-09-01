@@ -1,230 +1,466 @@
-// Estado do Jogo
-let currentLane = 1; // 0: Esquerda, 1: Centro, 2: Direita
-let score = 0;
-let isPaused = false;
-let isGameOver = false;
-let gameInterval;
-let spawnInterval;
+// CONFIGURAÇÕES E ESTADO DO JOGO
+let nivelAtual = 1;
+let duracaoAnimacao = 2.5;
+let pistaAtual = 1;
+const classesPistas = ["pos-esquerda", "pos-centro", "pos-direita"];
+let pontuacao = 0;
+let moedas = 0;
+let plantasColetadas = 0;
+let errosAcumulados = 0;
+let perguntaAtualIndex = 0;
+let jogoPausado = false;
 
-const lanePositions = [20, 140, 260]; // Posições X em pixels para cada pista
-const player = document.getElementById('player');
-const scoreElement = document.getElementById('score');
-const container = document.getElementById('game-container');
-const quizModal = document.getElementById('quiz-modal');
-const gameOverScreen = document.getElementById('game-over');
+// POWER-UPS E MODOS
+let duplicadorAtivo = false;
+let imaAtivo = false;
+let emChuvaDeMoedas = false;
+let contadorCiclos = 0;
 
-// Banco de Perguntas
-const questions = [
-  {
-    question: "O que é o Plantio Direto na agricultura sustentável?",
-    options: [
-      "Cultivar sem revolver o solo e mantendo a palhada",
-      "Queimar a vegetação antes de plantar",
-      "Plantar apenas em vasos de estufa"
-    ],
-    correct: 0
-  },
-  {
-    question: "Qual a principal vantagem da Rotação de Culturas?",
-    options: [
-      "Aumentar o uso de agrotóxicos",
-      "Preservar os nutrientes do solo e interromper ciclos de pragas",
-      "Gastar mais água na irrigação"
-    ],
-    correct: 1
-  },
-  {
-    question: "Qual a importância das minhocas para a qualidade do solo?",
-    options: [
-      "Elas comem as plantas cultivadas",
-      "Elas arejam o solo e produzem húmus rico em nutrientes",
-      "Elas compactam a terra impedindo a água de entrar"
-    ],
-    correct: 1
-  },
-  {
-    question: "O que caracteriza a Agricultura de Precisão?",
-    options: [
-      "Uso de tecnologia para aplicar recursos no local e quantidade exatos",
-      "Descarte de qualquer tipo de equipamento eletrônico",
-      "Uso da mesma quantidade de fertilizante em toda a área"
-    ],
-    correct: 0
-  },
-  {
-    question: "Como a tecnologia auxilia a sustentabilidade no campo?",
-    options: [
-      "Aumentando o desperdício de insumos",
-      "Otimizando o uso da água e monitorando a saúde da lavoura",
-      "Substituindo o solo por concreto"
-    ],
-    correct: 1
-  }
+// EMOJIS DE OBSTÁCULOS
+const listaObstaculos = ["🚜", "⛏️", "🪨", "🪵"];
+
+// ELEMENTOS DO DOM
+const player = document.getElementById("player");
+const praga = document.getElementById("praga");
+const obstaculo = document.getElementById("obstaculo");
+const recurso = document.getElementById("recurso");
+const itemEspecial = document.getElementById("item-especial");
+const scoreDisplay = document.getElementById("score");
+const coinsDisplay = document.getElementById("coins");
+const speedIndicator = document.getElementById("speed-indicator");
+const modalQuiz = document.getElementById("quiz-modal");
+const modalShop = document.getElementById("shop-modal");
+const chao = document.getElementById("chao");
+const multiplierTag = document.getElementById("multiplier-tag");
+const powerupStatus = document.getElementById("powerup-status");
+
+// ÁUDIO SINTETIZADO (Web Audio API)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function tocarNota(frequencia, duracao, tipo = "sine") {
+    // Evita acumular sons se o áudio estiver desligado ou pausado
+    if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+    }
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = tipo;
+    osc.frequency.setValueAtTime(frequencia, audioCtx.currentTime);
+    
+    // Suaviza a entrada e saída do som para evitar estalos agudos
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duracao);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + duracao);
+}
+
+// SOM DA CHUVA DE MOEDAS
+function tocarSomMoeda() {
+    tocarNota(987.77, 0.08, "triangle");
+    setTimeout(() => tocarNota(1318.51, 0.12, "triangle"), 80);
+}
+
+// TRILHA SONORA DINÂMICA (Ajustada para não sobrepor frequências)
+setInterval(() => {
+    if (!jogoPausado) {
+        if (emChuvaDeMoedas) {
+            tocarNota(523.25, 0.08, "sine");
+            setTimeout(() => tocarNota(659.25, 0.08, "sine"), 100);
+            setTimeout(() => tocarNota(783.99, 0.08, "sine"), 200);
+            setTimeout(() => tocarNota(1046.50, 0.1, "sine"), 300);
+        } else {
+            tocarNota(261.63, 0.1, "sine");
+            setTimeout(() => tocarNota(329.63, 0.1, "sine"), 200);
+            setTimeout(() => tocarNota(392.00, 0.1, "sine"), 400);
+        }
+    }
+}, 800);
+
+// BANCO DE PERGUNTAS EXPANDIDO
+const bancoPerguntas = [
+    { pergunta: "Qual a composição básica do solo?", 
+    opcoes: ["Minerais, matéria orgânica, água e ar", "Apenas pedras e areia"],
+    correta: 0 },
+
+    { pergunta: "O que é Húmus?",
+     opcoes: ["Matéria orgânica decomposta", "Um tipo de agrotóxico"], 
+     correta: 0 },
+
+    { pergunta: "Qual solo retém mais água?", 
+    opcoes: ["Solo Arenoso", "Solo Argiloso"], 
+    correta: 1 },
+
+    { pergunta: "O que evita a erosão do solo?", 
+    opcoes: ["Plantio em curvas de nível", "Desmatamento"], 
+    correta: 0 },
+
+    { pergunta: "O que é rotação de culturas?", 
+    opcoes: ["Alternar espécies no mesmo terreno", "Plantar sempre a mesma coisa"], 
+    correta: 0 },
+
+    { pergunta: "Qual elemento é um macronutriente primário das plantas?", 
+    opcoes: ["Nitrogênio (N)", "Alumínio (Al)"], 
+    correta: 0 },
+
+    { pergunta: "Qual a função da calagem no solo?",
+     opcoes: ["Reduzir a acidez do solo", "Aumentar a quantidade de pragas"], 
+     correta: 0 },
+
+    { pergunta: "O que são plantas de cobertura?", 
+    opcoes: ["Especialmente usadas para proteger o solo", "Plantas ornamentais de casa"], 
+    correta: 0 },
+
+    { pergunta: "Como a irrigação por gotejamento ajuda?", 
+    opcoes: ["Economiza água aplicando direto na raiz", "Molha o terreno todo sem controle"], 
+    correta: 0 },
+
+    { pergunta: "O que caracteriza a adubação verde?",
+     opcoes: ["Uso de plantas para enriquecer o solo", "Pintar as plantas de verde"], 
+     correta: 0 },
+
+    { pergunta: "O que é a compactação do solo?", 
+    opcoes: ["Perda de porosidade que dificulta as raízes", "Adição de adubo natural"], 
+    correta: 0 },
+
+    { pergunta: "Qual inseto é considerado um polinizador vital?", 
+    opcoes: ["Abelha", "Lagarta"], 
+    correta: 0 },
+
+    { pergunta: "O que é agroecologia?", 
+    opcoes: ["Agricultura sustentável sem químicos nocivos", "Produção industrial de agrotóxicos"],
+    correta: 0 },
+
+    { pergunta: "O que indica o pH do solo?", 
+    opcoes: ["Grau de acidez ou alcalinidade", "A quantidade de pedras"], 
+    correta: 0 },
+
+    { pergunta: "O que faz a enxada rotativa?", 
+    opcoes: ["Prepara e descompacta o solo agrícola", "Corta árvores grandes"], 
+    correta: 0 },
+
+ { pergunta: "Qual tecnologia ou maquinário revolucionou a produtividade da sua propriedade nos últimos anos?", 
+opcoes: ["Prepara e descompacta o solo agrícola", "Corta árvores grandes"], 
+correta: 0 },
+
+{ pergunta: "Qual tecnologia ou maquinário revolucionou a produtividade da sua propriedade nos últimos anos?",
+ opcoes:["O piloto automático nos tratores e colheitadeiras, que reduziu o pisoteio e otimizou a aplicação de insumos", 
+"O monitoramento via satélite e drones, permite identificar pragas e falhas no plantio muito mais rápido."],
+correta: 0},
+
+{pergunta:"Qual é o maior desafio para digitalizar e modernizar a gestão no campo hoje?",
+opcoes:["Qual é o maior desafio para digitalizar e modernizar a gestão no campo hoje?",
+"A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas"],
+correta: 1},
+
+{pergunta: "A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas",
+opcoes:["A falta de cobertura de internet de qualidade nas áreas rurais mais afastadas", 
+"o plantio direto rigoroso combinado com a rotação de culturas para manter a biologia do solo ativa"],
+correta: 1}
+
+
+
+
 ];
 
-let currentQuestionIndex = 0;
+let perguntasRestantes = [...bancoPerguntas];
 
-// Atualiza a posição inicial do jogador
-function updatePlayerPosition() {
-  player.style.left = lanePositions[currentLane] + 'px';
-}
-updatePlayerPosition();
-
-// Controles por Teclado
-document.addEventListener('keydown', (e) => {
-  if (isPaused || isGameOver) return;
-
-  if (e.key === 'ArrowLeft' && currentLane > 0) {
-    currentLane--;
-  } else if (e.key === 'ArrowRight' && currentLane < 2) {
-    currentLane++;
-  }
-  updatePlayerPosition();
+// CONTROLES DE MOVIMENTO
+document.addEventListener("keydown", (e) => {
+    if (jogoPausado) return;
+    if (e.key === "ArrowLeft") moverEsquerda();
+    if (e.key === "ArrowRight") moverDireita();
 });
 
-// Gerador de Obstáculos e Recursos
-const activeEntities = [];
+document.getElementById("btn-left").addEventListener("click", moverEsquerda);
+document.getElementById("btn-right").addEventListener("click", moverDireita);
+document.getElementById("btn-shop").addEventListener("click", abrirLoja);
+document.getElementById("btn-close-shop").addEventListener("click", fecharLoja);
 
-function spawnEntity() {
-  if (isPaused || isGameOver) return;
-
-  const lane = Math.floor(Math.random() * 3);
-  const isResource = Math.random() > 0.5; // 50% de chance de ser recurso ou obstáculo
-
-  const entity = document.createElement('div');
-  entity.classList.add('entity');
-  
-  if (isResource) {
-    entity.dataset.type = 'resource';
-    entity.innerHTML = '🌱'; // Planta
-  } else {
-    entity.dataset.type = 'obstacle';
-    entity.innerHTML = Math.random() > 0.5 ? '🚜' : '🐛'; // Trator ou Praga
-  }
-
-  entity.style.left = lanePositions[lane] + 'px';
-  entity.style.top = '-80px';
-  entity.dataset.lane = lane;
-  entity.dataset.y = -80;
-
-  container.appendChild(entity);
-  activeEntities.push(entity);
+function moverEsquerda() {
+    if (pistaAtual > 0) {
+        pistaAtual--;
+        atualizarPosicao();
+    }
 }
 
-// Loop do Jogo (Movimentação e Colisão)
-function gameLoop() {
-  if (isPaused || isGameOver) return;
+function moverDireita() {
+    if (pistaAtual < 2) {
+        pistaAtual++;
+        atualizarPosicao();
+    }
+}
 
-  for (let i = activeEntities.length - 1; i >= 0; i--) {
-    const entity = activeEntities[i];
-    let y = parseFloat(entity.dataset.y);
-    y += 4; // Velocidade de queda
-    entity.dataset.y = y;
-    entity.style.top = y + 'px';
+function atualizarPosicao() {
+    player.className = classesPistas[pistaAtual];
+    praga.className = classesPistas[pistaAtual];
+}
 
-    const entityLane = parseInt(entity.dataset.lane);
+function atualizarEstiloPraga() {
+    const deslocamentoBottom = 10 + (errosAcumulados * 35);
+    const escala = 1 + (errosAcumulados * 0.25);
+    praga.style.bottom = `${deslocamentoBottom}px`;
+    praga.style.transform = `scale(${escala})`;
+}
 
-    // Verificação de Colisão com o Jogador (Y próximo do jogador e na mesma pista)
-    if (y >= 480 && y <= 540 && entityLane === currentLane) {
-      if (entity.dataset.type === 'resource') {
-        // Coletou Recurso -> Pausa o jogo e abre a pergunta
-        entity.remove();
-        activeEntities.splice(i, 1);
-        triggerQuiz();
-      } else {
-        // Colidiu com Obstáculo -> Game Over
-        triggerGameOver();
-      }
+// LOOP DE JOGO PRINCIPAL
+function iniciarCiclo() {
+    if (jogoPausado) return;
+
+    contadorCiclos++;
+    
+    // Sortear pistas
+    const pistaObs = Math.floor(Math.random() * 3);
+    let pistaRec = Math.floor(Math.random() * 3);
+    while (pistaRec === pistaObs) pistaRec = Math.floor(Math.random() * 3);
+
+    // Definir tipo de obstáculo aleatório
+    const obsAleatorio = listaObstaculos[Math.floor(Math.random() * listaObstaculos.length)];
+    obstaculo.innerText = obsAleatorio;
+
+    // Chuva de moedas a cada 6 ciclos
+    if (contadorCiclos % 6 === 0) {
+        ativarChuvaDeMoedas();
+    } else {
+        recurso.innerText = "🌱";
     }
 
-    // Remove itens que saírem da tela
-    if (y > 600) {
-      entity.remove();
-      activeEntities.splice(i, 1);
+    // Sortear aparecimento do Ímã ou Duplicador 2x
+    let pistaEsp = -1;
+    if (Math.random() < 0.25) {
+        pistaEsp = Math.floor(Math.random() * 3);
+        itemEspecial.innerText = Math.random() > 0.5 ? "🧲" : "✖️2️⃣";
+        itemEspecial.className = classesPistas[pistaEsp] + " animar-objeto";
+    } else {
+        itemEspecial.className = "";
     }
-  }
-}
 
-// Pausa o jogo e exibe a pergunta
-function triggerQuiz() {
-  isPaused = true;
-  const q = questions[currentQuestionIndex];
-  
-  document.getElementById('question-text').innerText = q.question;
-  const optionsContainer = document.getElementById('options-container');
-  const feedback = document.getElementById('feedback');
-  
-  optionsContainer.innerHTML = '';
-  feedback.innerText = '';
+    obstaculo.className = classesPistas[pistaObs] + " animar-objeto";
+    recurso.className = classesPistas[pistaRec] + " animar-objeto";
 
-  q.options.forEach((opt, idx) => {
-    const btn = document.createElement('button');
-    btn.classList.add('btn-option');
-    btn.innerText = opt;
-    btn.onclick = () => checkAnswer(idx, q.correct);
-    optionsContainer.appendChild(btn);
-  });
+    const checarColisao = setInterval(() => {
+        if (jogoPausado) return;
 
-  quizModal.style.display = 'flex';
-}
+        const topoObs = obstaculo.offsetTop;
+        const topoRec = recurso.offsetTop;
+        const topoEsp = itemEspecial.offsetTop;
 
-// Checa a resposta escolhida
-function checkAnswer(selectedIndex, correctIndex) {
-  const feedback = document.getElementById('feedback');
+        // Ímã puxa moedas
+        if (imaAtivo && recurso.innerText === "🪙" && topoRec > 150) {
+            recurso.className = classesPistas[pistaAtual] + " animar-objeto";
+        }
 
-  if (selectedIndex === correctIndex) {
-    score += 10;
-    scoreElement.innerText = score;
-    feedback.style.color = '#81c784';
-    feedback.innerText = 'Correto! +10 pontos';
+        // Colisão com Obstáculos
+        if (topoObs > 420 && topoObs < 500 && pistaAtual === pistaObs) {
+            tocarNota(150, 0.3, "sawtooth");
+            clearInterval(checarColisao);
+            reiniciarJogo("Você bateu no obstáculo!");
+            return;
+        }
+
+        // Colisão com Recurso (Planta ou Moeda)
+        if (topoRec > 420 && topoRec < 500 && pistaAtual === pistaRec) {
+            if (recurso.innerText === "🪙") {
+                tocarSomMoeda();
+                moedas += 1;
+                coinsDisplay.innerText = moedas;
+                redefinirPosicaoRecurso();
+            } else {
+                plantasColetadas++;
+                const pontosGanhos = duplicadorAtivo ? 20 : 10;
+                pontuacao += pontosGanhos;
+                scoreDisplay.innerText = pontuacao;
+                tocarNota(523.25, 0.2);
+
+                // Checar mudança de fase (15 plantas)
+                if (plantasColetadas === 15) {
+                    nivelAtual = 2;
+                    duracaoAnimacao = 1.8;
+                    chao.classList.add("fase-2-chao");
+                    speedIndicator.innerText = "Fase 2 (Nova Fase!)";
+                    alert("🎉 Parabéns! Você avançou para a Fase 2! O solo mudou e o ritmo acelerou!");
+                }
+
+                redefinirPosicaoRecurso();
+
+                // Pergunta sim / Pergunta não (50% de chance)
+                if (plantasColetadas % 2 === 0) {
+                    clearInterval(checarColisao);
+                    pausarJogo();
+                    abrirQuiz();
+                    return;
+                }
+            }
+        }
+
+        // Colisão com Item Especial (Power-up)
+        if (topoEsp > 420 && topoEsp < 500 && pistaAtual === pistaEsp) {
+            if (itemEspecial.innerText === "🧲") {
+                ativarIma();
+            } else {
+                ativarDuplicador();
+            }
+            itemEspecial.className = "";
+        }
+
+    }, 50);
 
     setTimeout(() => {
-      quizModal.style.display = 'none';
-      isPaused = false;
-      // Avança para a próxima pergunta ou reinicia o ciclo
-      currentQuestionIndex = (currentQuestionIndex + 1) % questions.length;
-    }, 1200);
-  } else {
-    feedback.style.color = '#e57373';
-    feedback.innerText = 'Incorreto! A praga avançou...';
+        clearInterval(checarColisao);
+        if (!jogoPausado) iniciarCiclo();
+    }, duracaoAnimacao * 1000);
+}
 
+// CHUVA DE MOEDAS
+function ativarChuvaDeMoedas() {
+    emChuvaDeMoedas = true;
+    recurso.innerText = "🪙";
+    setTimeout(() => { emChuvaDeMoedas = false; }, 3000);
+}
+
+// POWER-UPS
+function ativarIma() {
+    imaAtivo = true;
+    powerupStatus.innerText = "🧲 Ativo!";
+    tocarNota(800, 0.3);
     setTimeout(() => {
-      quizModal.style.display = 'none';
-      triggerGameOver();
-    }, 1500);
-  }
+        imaAtivo = false;
+        powerupStatus.innerText = "";
+    }, 7000);
 }
 
-// Finaliza a partida
-function triggerGameOver() {
-  isGameOver = true;
-  document.getElementById('final-score').innerText = score;
-  gameOverScreen.style.display = 'flex';
-  clearInterval(gameInterval);
-  clearInterval(spawnInterval);
+function ativarDuplicador() {
+    duplicadorAtivo = true;
+    multiplierTag.innerText = "(2x!)";
+    tocarNota(900, 0.3);
+    setTimeout(() => {
+        duplicadorAtivo = false;
+        multiplierTag.innerText = "";
+    }, 7000);
 }
 
-// Reinicia o jogo
-function restartGame() {
-  // Limpa elementos existentes
-  activeEntities.forEach(e => e.remove());
-  activeEntities.length = 0;
-
-  score = 0;
-  currentLane = 1;
-  isPaused = false;
-  isGameOver = false;
-  currentQuestionIndex = 0;
-
-  scoreElement.innerText = score;
-  updatePlayerPosition();
-  gameOverScreen.style.display = 'none';
-
-  // Reinicia os loops
-  gameInterval = setInterval(gameLoop, 1000 / 60); // 60 FPS
-  spawnInterval = setInterval(spawnEntity, 1500); // Novo item a cada 1.5s
+// CONTROLE DO PAUSAR E RETOMAR
+function pausarJogo() {
+    jogoPausado = true;
+    obstaculo.style.animationPlayState = 'paused';
+    recurso.style.animationPlayState = 'paused';
+    itemEspecial.style.animationPlayState = 'paused';
 }
 
-// Inicialização
-gameInterval = setInterval(gameLoop, 1000 / 60);
-spawnInterval = setInterval(spawnEntity, 1500);
+function retomarJogo() {
+    jogoPausado = false;
+    obstaculo.style.animationPlayState = 'running';
+    recurso.style.animationPlayState = 'running';
+    itemEspecial.style.animationPlayState = 'running';
+}
+
+function redefinirPosicoes() {
+    obstaculo.className = "";
+    recurso.className = "";
+    itemEspecial.className = "";
+}
+
+function redefinirPosicaoRecurso() {
+    recurso.className = "";
+}
+
+// REINICIAR JOGO AO ERRAR OU BATER
+function reiniciarJogo(mensagem) {
+    alert(`${mensagem} O jogo será reiniciado!`);
+    pontuacao = 0;
+    moedas = 0;
+    plantasColetadas = 0;
+    errosAcumulados = 0;
+    nivelAtual = 1;
+    duracaoAnimacao = 2.5;
+    chao.classList.remove("fase-2-chao");
+    speedIndicator.innerText = "Fase 1";
+    scoreDisplay.innerText = "0";
+    coinsDisplay.innerText = "0";
+    atualizarEstiloPraga();
+    redefinirPosicoes();
+    iniciarCiclo();
+}
+
+// SYSTEM QUIZ
+function abrirQuiz() {
+    if (perguntasRestantes.length === 0) perguntasRestantes = [...bancoPerguntas];
+
+    perguntaAtualIndex = Math.floor(Math.random() * perguntasRestantes.length);
+    const q = perguntasRestantes[perguntaAtualIndex];
+
+    document.getElementById("quiz-pergunta").innerText = q.pergunta;
+    document.getElementById("op0").innerText = q.opcoes[0];
+    document.getElementById("op1").innerText = q.opcoes[1];
+    document.getElementById("feedback").innerText = "";
+
+    modalQuiz.classList.remove("modal-hide");
+}
+
+function verificarResposta(opcao) {
+    const q = perguntasRestantes[perguntaAtualIndex];
+    
+    if (opcao === q.correta) {
+        tocarNota(659.25, 0.3);
+        document.getElementById("feedback").style.color = "darkgreen";
+        document.getElementById("feedback").innerText = "Correto!";
+
+        if (errosAcumulados > 0) {
+            errosAcumulados--;
+            atualizarEstiloPraga();
+        }
+
+        perguntasRestantes.splice(perguntaAtualIndex, 1);
+
+        setTimeout(() => {
+            modalQuiz.classList.add("modal-hide");
+            redefinirPosicoes();
+            retomarJogo();
+            iniciarCiclo();
+        }, 800);
+    } else {
+        tocarNota(110, 0.4, "sine");
+        modalQuiz.classList.add("modal-hide");
+        reiniciarJogo("Você errou a pergunta!");
+    }
+}
+
+// LOJA DA FAZENDA
+function abrirLoja() {
+    pausarJogo();
+    document.getElementById("shop-coins").innerText = moedas;
+    modalShop.classList.remove("modal-hide");
+}
+
+function fecharLoja() {
+    modalShop.classList.add("modal-hide");
+    retomarJogo();
+}
+
+function comprarItem(item, preco) {
+    if (moedas >= preco) {
+        moedas -= preco;
+        coinsDisplay.innerText = moedas;
+        document.getElementById("shop-coins").innerText = moedas;
+        tocarNota(880, 0.3);
+        
+        if (item === 'muda') alert("🌱 Mudas Especiais compradas! Suas plantas dão bônus!");
+        if (item === 'fertilizante') alert("🧪 Fertilizante aplicado! A praga recua 1 passo!");
+        if (item === 'trator') alert("🚜 Trator novo desbloqueado!");
+
+        if (item === 'fertilizante' && errosAcumulados > 0) {
+            errosAcumulados--;
+            atualizarEstiloPraga();
+        }
+    } else {
+        alert("Moedas insuficientes!");
+    }
+}
+
+// INICIAR O JOGO
+iniciarCiclo();
