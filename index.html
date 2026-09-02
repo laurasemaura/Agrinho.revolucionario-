@@ -28,9 +28,7 @@
             <!-- ELEMENTOS DO JOGO -->
             <div id="praga" class="pos-centro">🐛</div>
             <div id="player" class="pos-centro">🏃</div>
-            <div id="obstaculo">🚜</div>
-            <div id="recurso">🌱</div>
-            <div id="item-especial">🧲</div>
+            <!-- obstáculos, plantas, moedas e power-ups são criados dinamicamente pelo jogo.js -->
         </div>
         <!-- CONTROLES NA TELA -->
         <div id="controls">
@@ -56,15 +54,15 @@
                 <hr>
                 <div class="shop-item">
                     <span>🌱 Mudas Especiais (+Pontos)</span>
-                    <button onclick="comprarItem('muda', 2)">2 🪙</button>
+                    <button onclick="comprarItem('muda', 3)">3 🪙</button>
                 </div>
                 <div class="shop-item">
-                    <span>🧪 Fertilizante Turbo (Regredir Praga)</span>
-                    <button onclick="comprarItem('fertilizante', 3)">3 🪙</button>
+                    <span>🧪 Fertilizante Turbo</span>
+                    <button onclick="comprarItem('fertilizante', 5)">5 🪙</button>
                 </div>
                 <div class="shop-item">
-                    <span>🚜 Trator Novo (🛡️Escudo)</span>
-                    <button onclick="comprarItem('trator', 5)">5 🪙</button>
+                    <span>🚜 Trator Novo</span>
+                    <button onclick="comprarItem('trator', 10)">10 🪙</button>
                 </div>
                 <button id="btn-close-shop" class="btn-fechar">Voltar ao Jogo</button>
             </div>

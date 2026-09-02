@@ -21,9 +21,30 @@ let contadorCiclos = 0;
 let bonusMudas = 0;      // pontos extras por planta coletada (Mudas Especiais)
 let escudosTrator = 0;   // impactos que o Trator Novo absorve sem reiniciar o jogo
 
-// CONTROLE DO LOOP (evita loops duplicados ao pausar/retomar)
-let cicloTimeoutId = null;
-let colisaoIntervalId = null;
+// Controla o espaço entre uma onda de itens e outra: quanto menor, mais
+// ondas ficam na tela ao mesmo tempo (mais difícil). Começa em
+// FATOR_INTERVALO_MAX (mais fácil) e vai diminuindo conforme o jogador
+// coleta plantas, até chegar em FATOR_INTERVALO_MIN — nunca fica mais
+// rápido que isso, pra não virar impossível.
+const FATOR_INTERVALO_MAX = 0.55;
+const FATOR_INTERVALO_MIN = 0.22;
+const PLANTAS_PARA_DIFICULDADE_MAXIMA = 40; // plantas coletadas até chegar no ritmo mínimo
+let fatorIntervaloOnda = FATOR_INTERVALO_MAX;
+
+function atualizarFatorIntervalo() {
+    const progresso = Math.min(plantasColetadas / PLANTAS_PARA_DIFICULDADE_MAXIMA, 1);
+    fatorIntervaloOnda = FATOR_INTERVALO_MAX - (FATOR_INTERVALO_MAX - FATOR_INTERVALO_MIN) * progresso;
+}
+
+// CONTROLE DOS LOOPS
+let intervaloOndaId = null;     // cria novas ondas de itens periodicamente
+let intervaloColisaoId = null;  // checa colisão de TODOS os itens ativos (roda uma vez só, o jogo todo)
+
+// Cada item que está caindo neste momento é um objeto independente aqui dentro,
+// então um item nunca precisa "esperar" outro terminar nem reaproveita o
+// elemento de outro — isso é o que evita os bugs de itens trocando de lugar
+// ou travando no meio do caminho.
+let objetosAtivos = [];
 
 // EMOJIS DE OBSTÁCULOS
 const listaObstaculos = ["🚜", "⛏️", "🪨", "🪵"];
@@ -31,9 +52,6 @@ const listaObstaculos = ["🚜", "⛏️", "🪨", "🪵"];
 // ELEMENTOS DO DOM
 const player = document.getElementById("player");
 const praga = document.getElementById("praga");
-const obstaculo = document.getElementById("obstaculo");
-const recurso = document.getElementById("recurso");
-const itemEspecial = document.getElementById("item-especial");
 const scoreDisplay = document.getElementById("score");
 const coinsDisplay = document.getElementById("coins");
 const speedIndicator = document.getElementById("speed-indicator");
@@ -108,146 +126,182 @@ function atualizarEstiloPraga() {
 }
 
 // Aplica a duração atual da animação (fase 1 ou 2) na variável CSS
-// usada por #obstaculo, #recurso e #item-especial (--duracao-animacao)
+// usada pelos itens que caem (--duracao-animacao)
 function aplicarVelocidadeAnimacao() {
     mundo.style.setProperty("--duracao-animacao", `${duracaoAnimacao}s`);
 }
 
-// LOOP DE JOGO PRINCIPAL
-function iniciarCiclo() {
-    if (jogoPausado) return;
+// Cria um item caindo (obstáculo, planta, moeda, ímã ou duplicador) como um
+// elemento NOVO na tela. Por ser sempre um elemento novo — nunca reaproveitado
+// — a animação de queda sempre roda do zero, sem risco de "grudar" na queda
+// de um item anterior ou de não reiniciar quando a pista sorteada repete.
+function criarItemCaindo(tipo, pista, emoji) {
+    const el = document.createElement("div");
+    el.className = `item-caindo ${classesPistas[pista]}`;
+    el.innerText = emoji;
 
-    // Garante que nunca existam dois loops rodando ao mesmo tempo
-    if (cicloTimeoutId !== null) clearTimeout(cicloTimeoutId);
-    if (colisaoIntervalId !== null) clearInterval(colisaoIntervalId);
+    const objeto = { el, tipo, pista, coletado: false };
+    objetosAtivos.push(objeto);
+    mundo.appendChild(el);
+
+    // Quando o item chega ao fim do trajeto sem ser coletado, ele se
+    // remove sozinho da tela e da lista de itens ativos.
+    el.addEventListener("animationend", () => removerItem(objeto));
+
+    return objeto;
+}
+
+function removerItem(objeto) {
+    if (objeto.el.parentNode) objeto.el.parentNode.removeChild(objeto.el);
+    const indice = objetosAtivos.indexOf(objeto);
+    if (indice !== -1) objetosAtivos.splice(indice, 1);
+}
+
+function limparTodosOsItens() {
+    objetosAtivos.forEach((objeto) => {
+        if (objeto.el.parentNode) objeto.el.parentNode.removeChild(objeto.el);
+    });
+    objetosAtivos = [];
+}
+
+// Cria uma nova "onda": 1 obstáculo + 1 planta ou moeda, e às vezes 1 power-up,
+// cada um em pistas diferentes.
+function criarOnda() {
+    if (jogoPausado) return;
 
     contadorCiclos++;
 
-    // Sortear pistas
     const pistaObs = Math.floor(Math.random() * 3);
     let pistaRec = Math.floor(Math.random() * 3);
     while (pistaRec === pistaObs) pistaRec = Math.floor(Math.random() * 3);
 
-    // Definir tipo de obstáculo aleatório
     const obsAleatorio = listaObstaculos[Math.floor(Math.random() * listaObstaculos.length)];
-    obstaculo.innerText = obsAleatorio;
+    criarItemCaindo("obstaculo", pistaObs, obsAleatorio);
 
-    // Chuva de moedas a cada 6 ciclos
+    // Chuva de moedas a cada 6 ondas
     if (contadorCiclos % 6 === 0) {
+        criarItemCaindo("moeda", pistaRec, "🪙");
         ativarChuvaDeMoedas();
     } else {
-        recurso.innerText = "🌱";
+        criarItemCaindo("planta", pistaRec, "🌱");
     }
 
-    // Sortear aparecimento do Ímã ou Duplicador 2x
-    // Usa sempre a pista que sobrou (a que não tem obstáculo nem recurso),
-    // assim o item especial nunca cai em cima de outro item.
-    let pistaEsp = -1;
+    // Sortear aparecimento do Ímã ou Duplicador 2x, sempre na pista que
+    // sobrou (a que não tem obstáculo nem recurso), para nunca cair em
+    // cima de outro item.
     if (Math.random() < 0.25) {
-        pistaEsp = 3 - pistaObs - pistaRec;
-        itemEspecial.innerText = Math.random() > 0.5 ? "🧲" : "✖️2️⃣";
-        itemEspecial.className = classesPistas[pistaEsp] + " animar-objeto";
-        itemEspecial.style.display = "";
-    } else {
-        itemEspecial.className = "";
-        itemEspecial.style.display = "none";
+        const pistaEsp = 3 - pistaObs - pistaRec;
+        const tipoEsp = Math.random() > 0.5 ? "ima" : "duplicador";
+        criarItemCaindo(tipoEsp, pistaEsp, tipoEsp === "ima" ? "🧲" : "✖️2️⃣");
     }
-
-    obstaculo.className = classesPistas[pistaObs] + " animar-objeto";
-    recurso.className = classesPistas[pistaRec] + " animar-objeto";
-
-    // Zona de coleta/colisão calculada a partir da posição real do fazendeiro
-    // na tela (em vez de números fixos), para os itens serem pegos exatamente
-    // onde ele está, e não mais acima.
-    const zonaTopo = player.offsetTop - 20;
-    const zonaBase = player.offsetTop + 40;
-
-    colisaoIntervalId = setInterval(() => {
-        if (jogoPausado) return;
-
-        const topoObs = obstaculo.offsetTop;
-        const topoRec = recurso.offsetTop;
-        const topoEsp = itemEspecial.offsetTop;
-
-        // Ímã: com ele ativo, moedas são coletadas automaticamente ao passar
-        // pela zona de coleta, mesmo em outra pista (sem "teleportar" o item,
-        // o que antes fazia a moeda sumir/reaparecer e o jogador perder o item).
-        const imaColetandoMoeda = imaAtivo && recurso.innerText === "🪙" && topoRec > zonaTopo && topoRec < zonaBase;
-
-        // Colisão com Obstáculos
-        if (topoObs > zonaTopo && topoObs < zonaBase && pistaAtual === pistaObs) {
-            if (escudosTrator > 0) {
-                // O Trator Novo absorve o impacto em vez de reiniciar o jogo
-                escudosTrator--;
-                atualizarStatusLoja();
-                tocarNota(200, 0.25, "square");
-                obstaculo.className = "";
-                return;
-            }
-            tocarNota(150, 0.3, "sawtooth");
-            clearInterval(colisaoIntervalId);
-            reiniciarJogo("Você bateu no obstáculo!");
-            return;
-        }
-
-        // Colisão com Recurso (Planta ou Moeda)
-        if ((topoRec > zonaTopo && topoRec < zonaBase && pistaAtual === pistaRec) || imaColetandoMoeda) {
-            if (recurso.innerText === "🪙") {
-                tocarSomMoeda();
-                moedas += 1;
-                coinsDisplay.innerText = moedas;
-                redefinirPosicaoRecurso();
-            } else {
-                plantasColetadas++;
-                const pontosGanhos = (duplicadorAtivo ? 20 : 10) + bonusMudas;
-                pontuacao += pontosGanhos;
-                scoreDisplay.innerText = pontuacao;
-                atualizarRecordeSeNecessario();
-                tocarNota(523.25, 0.2);
-
-                // Checar mudança de fase (15 plantas)
-                if (plantasColetadas === 15) {
-                    nivelAtual = 2;
-                    duracaoAnimacao = 1.8;
-                    aplicarVelocidadeAnimacao();
-                    chao.classList.add("fase-2-chao");
-                    speedIndicator.innerText = "Fase 2 (Nova Fase!)";
-                    alert("🎉 Parabéns! Você avançou para a Fase 2! O solo mudou e o ritmo acelerou!");
-                }
-
-                redefinirPosicaoRecurso();
-
-                // A cada 2 plantas, aparece uma pergunta do quiz
-                if (plantasColetadas % 2 === 0) {
-                    clearInterval(colisaoIntervalId);
-                    pausarJogo();
-                    abrirQuiz();
-                    return;
-                }
-            }
-        }
-
-        // Colisão com Item Especial (Power-up)
-        if (topoEsp > zonaTopo && topoEsp < zonaBase && pistaAtual === pistaEsp) {
-            if (itemEspecial.innerText === "🧲") {
-                ativarIma();
-            } else {
-                ativarDuplicador();
-            }
-            itemEspecial.className = "";
-        }
-
-    }, 50);
-
-    cicloTimeoutId = setTimeout(() => {
-        if (!jogoPausado) iniciarCiclo();
-    }, duracaoAnimacao * 1000);
 }
 
-// CHUVA DE MOEDAS
+// (Re)inicia o cronômetro que cria novas ondas de itens. O intervalo entre
+// ondas é uma fração da duração da queda, então mais de uma onda fica na
+// tela ao mesmo tempo — é isso que dá a sensação de itens "alternando" nas
+// pistas, sem precisar reaproveitar elementos (o que causava os bugs).
+function definirRitmoDasOndas() {
+    if (intervaloOndaId !== null) clearInterval(intervaloOndaId);
+    if (jogoPausado) return;
+
+    atualizarFatorIntervalo();
+    const intervaloMs = Math.max(300, duracaoAnimacao * 1000 * fatorIntervaloOnda);
+    intervaloOndaId = setInterval(criarOnda, intervaloMs);
+    criarOnda(); // primeira onda sai na hora, sem esperar o intervalo inteiro
+}
+
+// Checagem de colisão: roda uma única vez, o jogo inteiro, e a cada 50ms
+// verifica TODOS os itens ativos contra a posição do fazendeiro.
+function iniciarChecagemDeColisao() {
+    if (intervaloColisaoId !== null) return; // já está rodando
+
+    intervaloColisaoId = setInterval(() => {
+        if (jogoPausado) return;
+
+        const zonaTopo = player.offsetTop - 20;
+        const zonaBase = player.offsetTop + 40;
+
+        // .slice() porque handlers de colisão podem remover itens da lista
+        // enquanto ela está sendo percorrida.
+        objetosAtivos.slice().forEach((objeto) => {
+            if (objeto.coletado) return;
+
+            const topo = objeto.el.offsetTop;
+            const naZonaDeColeta = topo > zonaTopo && topo < zonaBase;
+            const imaColetandoMoeda = imaAtivo && objeto.tipo === "moeda" && naZonaDeColeta;
+
+            if (!((naZonaDeColeta && pistaAtual === objeto.pista) || imaColetandoMoeda)) return;
+
+            objeto.coletado = true;
+
+            switch (objeto.tipo) {
+                case "obstaculo":
+                    if (escudosTrator > 0) {
+                        escudosTrator--;
+                        atualizarStatusLoja();
+                        tocarNota(200, 0.25, "square");
+                        removerItem(objeto);
+                    } else {
+                        tocarNota(150, 0.3, "sawtooth");
+                        reiniciarJogo("Você bateu no obstáculo!");
+                    }
+                    break;
+
+                case "moeda":
+                    tocarSomMoeda();
+                    moedas += 1;
+                    coinsDisplay.innerText = moedas;
+                    removerItem(objeto);
+                    break;
+
+                case "planta": {
+                    plantasColetadas++;
+                    const pontosGanhos = (duplicadorAtivo ? 20 : 10) + bonusMudas;
+                    pontuacao += pontosGanhos;
+                    scoreDisplay.innerText = pontuacao;
+                    atualizarRecordeSeNecessario();
+                    tocarNota(523.25, 0.2);
+                    removerItem(objeto);
+
+                    if (plantasColetadas === 15) {
+                        nivelAtual = 2;
+                        duracaoAnimacao = 1.8;
+                        aplicarVelocidadeAnimacao();
+                        chao.classList.add("fase-2-chao");
+                        speedIndicator.innerText = "Fase 2 (Nova Fase!)";
+                        alert("🎉 Parabéns! Você avançou para a Fase 2! O solo mudou e o ritmo acelerou!");
+                    }
+
+                    // Quanto mais plantas o jogador coleta, menor fica o
+                    // intervalo entre ondas — o jogo vai ficando mais
+                    // corrido aos poucos, em vez de pular de dificuldade
+                    // só na troca de fase.
+                    definirRitmoDasOndas();
+
+                    if (plantasColetadas % 2 === 0) {
+                        pausarJogo();
+                        abrirQuiz();
+                    }
+                    break;
+                }
+
+                case "ima":
+                    ativarIma();
+                    removerItem(objeto);
+                    break;
+
+                case "duplicador":
+                    ativarDuplicador();
+                    removerItem(objeto);
+                    break;
+            }
+        });
+    }, 50);
+}
+
+// CHUVA DE MOEDAS (efeito sonoro/visual de fundo, não mexe nos itens em si)
 function ativarChuvaDeMoedas() {
     emChuvaDeMoedas = true;
-    recurso.innerText = "🪙";
     setTimeout(() => { emChuvaDeMoedas = false; }, 3000);
 }
 
@@ -275,35 +329,24 @@ function ativarDuplicador() {
 // CONTROLE DO PAUSAR E RETOMAR
 function pausarJogo() {
     jogoPausado = true;
-    if (cicloTimeoutId !== null) clearTimeout(cicloTimeoutId);
-    if (colisaoIntervalId !== null) clearInterval(colisaoIntervalId);
-    obstaculo.style.animationPlayState = 'paused';
-    recurso.style.animationPlayState = 'paused';
-    itemEspecial.style.animationPlayState = 'paused';
+    if (intervaloOndaId !== null) clearInterval(intervaloOndaId);
+    objetosAtivos.forEach((objeto) => {
+        objeto.el.style.animationPlayState = "paused";
+    });
 }
 
 function retomarJogo() {
     jogoPausado = false;
-    obstaculo.style.animationPlayState = 'running';
-    recurso.style.animationPlayState = 'running';
-    itemEspecial.style.animationPlayState = 'running';
-}
-
-function redefinirPosicoes() {
-    obstaculo.className = "";
-    recurso.className = "";
-    itemEspecial.className = "";
-    itemEspecial.style.display = "none";
-}
-
-function redefinirPosicaoRecurso() {
-    recurso.className = "";
+    objetosAtivos.forEach((objeto) => {
+        objeto.el.style.animationPlayState = "running";
+    });
+    definirRitmoDasOndas();
 }
 
 // REINICIAR JOGO AO ERRAR OU BATER
 function reiniciarJogo(mensagem) {
-    if (cicloTimeoutId !== null) clearTimeout(cicloTimeoutId);
-    if (colisaoIntervalId !== null) clearInterval(colisaoIntervalId);
+    if (intervaloOndaId !== null) clearInterval(intervaloOndaId);
+    limparTodosOsItens();
 
     alert(`${mensagem} O jogo será reiniciado!`);
     pontuacao = 0;
@@ -321,9 +364,8 @@ function reiniciarJogo(mensagem) {
     scoreDisplay.innerText = "0";
     coinsDisplay.innerText = "0";
     atualizarEstiloPraga();
-    redefinirPosicoes();
     jogoPausado = false;
-    iniciarCiclo();
+    definirRitmoDasOndas();
 }
 
 // SISTEMA DE QUIZ
@@ -373,9 +415,8 @@ function verificarResposta(opcao) {
 
         setTimeout(() => {
             modalQuiz.classList.add("modal-hide");
-            redefinirPosicoes();
+            limparTodosOsItens();
             retomarJogo();
-            iniciarCiclo();
         }, 800);
     } else {
         tocarNota(110, 0.4, "sine");
@@ -390,9 +431,8 @@ function verificarResposta(opcao) {
             feedback.innerText = `Errado! A praga se aproximou... (${errosAcumulados}/${MAX_ERROS})`;
             setTimeout(() => {
                 modalQuiz.classList.add("modal-hide");
-                redefinirPosicoes();
+                limparTodosOsItens();
                 retomarJogo();
-                iniciarCiclo();
             }, 1000);
         }
     }
@@ -407,9 +447,8 @@ function abrirLoja() {
 
 function fecharLoja() {
     modalShop.classList.add("modal-hide");
-    redefinirPosicoes();
+    limparTodosOsItens();
     retomarJogo();
-    iniciarCiclo();
 }
 
 function comprarItem(item, preco) {
@@ -444,7 +483,7 @@ function comprarItem(item, preco) {
 }
 
 // INICIAR O JOGO
-itemEspecial.style.display = "none";
 atualizarEstiloPraga();
 aplicarVelocidadeAnimacao();
-iniciarCiclo();
+iniciarChecagemDeColisao();
+definirRitmoDasOndas();

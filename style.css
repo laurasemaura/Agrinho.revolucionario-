@@ -97,7 +97,11 @@ body {
 
 /* FASE 2 - ESTILO DO SOLO */
 .fase-2-chao {
-    background: repeating-linear-gradient(
+    /* Usamos "background-image" (não o atalho "background") de propósito:
+       o atalho "background" também define a posição do fundo, e por ter
+       !important, ele "ganhava" da animação (moverChao) a cada quadro,
+       travando o chão visualmente mesmo com a animação rodando por baixo. */
+    background-image: repeating-linear-gradient(
         0deg,
         #a7c957 0px,
         #a7c957 40px,
@@ -148,7 +152,7 @@ body {
     transition: bottom 0.3s ease, transform 0.3s ease, left 0.12s ease-out;
 }
 
-#obstaculo, #recurso, #item-especial {
+.item-caindo {
     position: absolute;
     top: -100px;
     width: 24%;
@@ -157,10 +161,7 @@ body {
     text-align: center;
     line-height: 70px;
     z-index: 4;
-}
-
-.animar-objeto {
-    animation: descerObjeto var(--duracao-animacao, 2.5s) linear infinite;
+    animation: descerObjeto var(--duracao-animacao, 2.5s) linear 1 forwards;
 }
 
 @keyframes descerObjeto {
