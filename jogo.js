@@ -39,6 +39,19 @@ const chao = document.getElementById("chao");
 const multiplierTag = document.getElementById("multiplier-tag");
 const powerupStatus = document.getElementById("powerup-status");
 const mundo = document.getElementById("world");
+const highscoreDisplay = document.getElementById("highscore");
+
+// RECORDE (salvo no navegador)
+let recorde = Number(localStorage.getItem("agroSurfersRecorde")) || 0;
+highscoreDisplay.innerText = recorde;
+
+function atualizarRecordeSeNecessario() {
+    if (pontuacao > recorde) {
+        recorde = pontuacao;
+        localStorage.setItem("agroSurfersRecorde", recorde);
+        highscoreDisplay.innerText = recorde;
+    }
+}
 
 let perguntasRestantes = [...bancoPerguntas];
 
@@ -113,13 +126,17 @@ function iniciarCiclo() {
     }
 
     // Sortear aparecimento do Ímã ou Duplicador 2x
+    // Usa sempre a pista que sobrou (a que não tem obstáculo nem recurso),
+    // assim o item especial nunca cai em cima de outro item.
     let pistaEsp = -1;
     if (Math.random() < 0.25) {
-        pistaEsp = Math.floor(Math.random() * 3);
+        pistaEsp = 3 - pistaObs - pistaRec;
         itemEspecial.innerText = Math.random() > 0.5 ? "🧲" : "✖️2️⃣";
         itemEspecial.className = classesPistas[pistaEsp] + " animar-objeto";
+        itemEspecial.style.display = "";
     } else {
         itemEspecial.className = "";
+        itemEspecial.style.display = "none";
     }
 
     obstaculo.className = classesPistas[pistaObs] + " animar-objeto";
@@ -132,10 +149,10 @@ function iniciarCiclo() {
         const topoRec = recurso.offsetTop;
         const topoEsp = itemEspecial.offsetTop;
 
-        // Ímã puxa moedas para a pista do jogador
-        if (imaAtivo && recurso.innerText === "🪙" && topoRec > 150) {
-            recurso.className = classesPistas[pistaAtual] + " animar-objeto";
-        }
+        // Ímã: com ele ativo, moedas são coletadas automaticamente ao passar
+        // pela zona de coleta, mesmo em outra pista (sem "teleportar" o item,
+        // o que antes fazia a moeda sumir/reaparecer e o jogador perder o item).
+        const imaColetandoMoeda = imaAtivo && recurso.innerText === "🪙" && topoRec > 420 && topoRec < 500;
 
         // Colisão com Obstáculos
         if (topoObs > 420 && topoObs < 500 && pistaAtual === pistaObs) {
@@ -146,7 +163,7 @@ function iniciarCiclo() {
         }
 
         // Colisão com Recurso (Planta ou Moeda)
-        if (topoRec > 420 && topoRec < 500 && pistaAtual === pistaRec) {
+        if ((topoRec > 420 && topoRec < 500 && pistaAtual === pistaRec) || imaColetandoMoeda) {
             if (recurso.innerText === "🪙") {
                 tocarSomMoeda();
                 moedas += 1;
@@ -157,6 +174,7 @@ function iniciarCiclo() {
                 const pontosGanhos = duplicadorAtivo ? 20 : 10;
                 pontuacao += pontosGanhos;
                 scoreDisplay.innerText = pontuacao;
+                atualizarRecordeSeNecessario();
                 tocarNota(523.25, 0.2);
 
                 // Checar mudança de fase (15 plantas)
@@ -247,6 +265,7 @@ function redefinirPosicoes() {
     obstaculo.className = "";
     recurso.className = "";
     itemEspecial.className = "";
+    itemEspecial.style.display = "none";
 }
 
 function redefinirPosicaoRecurso() {
@@ -383,5 +402,6 @@ function comprarItem(item, preco) {
 }
 
 // INICIAR O JOGO
+itemEspecial.style.display = "none";
 aplicarVelocidadeAnimacao();
 iniciarCiclo();
