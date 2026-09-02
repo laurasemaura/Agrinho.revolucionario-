@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div id="game-container">
         <!-- PAINEL SUPERIOR -->
         <div id="hud">
@@ -15,10 +14,8 @@
             <div>Moedas: <span id="coins">0</span> 🪙</div>
             <div id="speed-indicator">Fase 1</div>
         </div>
-
         <!-- INDICADORES DE POWER-UPS ATIVOS -->
         <div id="powerup-status"></div>
-
         <!-- CENÁRIO 3D / PERSPECTIVA -->
         <div id="world">
             <div class="pistas-container" id="chao">
@@ -26,7 +23,6 @@
                 <div class="pista"></div>
                 <div class="pista"></div>
             </div>
-
             <!-- ELEMENTOS DO JOGO -->
             <div id="praga" class="pos-centro">🐛</div>
             <div id="player" class="pos-centro">🏃</div>
@@ -34,24 +30,22 @@
             <div id="recurso">🌱</div>
             <div id="item-especial">🧲</div>
         </div>
-
         <!-- CONTROLES NA TELA -->
         <div id="controls">
             <button id="btn-left">◀</button>
             <button id="btn-shop">🛒</button>
             <button id="btn-right">▶</button>
         </div>
-
         <!-- MODAL DO QUIZ -->
         <div id="quiz-modal" class="modal-hide">
             <div class="quiz-box">
                 <h2 id="quiz-pergunta">Pergunta aqui...</h2>
                 <button id="op0" class="btn-opcao" onclick="verificarResposta(0)">Opção 1</button>
                 <button id="op1" class="btn-opcao" onclick="verificarResposta(1)">Opção 2</button>
+                <button id="op2" class="btn-opcao" onclick="verificarResposta(2)">Opção 3</button>
                 <div id="feedback"></div>
             </div>
         </div>
-
         <!-- MODAL DA LOJA DA FAZENDA -->
         <div id="shop-modal" class="modal-hide">
             <div class="shop-box">
@@ -60,22 +54,23 @@
                 <hr>
                 <div class="shop-item">
                     <span>🌱 Mudas Especiais (+Pontos)</span>
-                    <button onclick="comprarItem('muda', 30)">30 🪙</button>
+                    <button onclick="comprarItem('muda', 3)">3 🪙</button>
                 </div>
                 <div class="shop-item">
                     <span>🧪 Fertilizante Turbo</span>
-                    <button onclick="comprarItem('fertilizante', 50)">50 🪙</button>
+                    <button onclick="comprarItem('fertilizante', 5)">5 🪙</button>
                 </div>
                 <div class="shop-item">
                     <span>🚜 Trator Novo</span>
-                    <button onclick="comprarItem('trator', 100)">100 🪙</button>
+                    <button onclick="comprarItem('trator', 10)">10 🪙</button>
                 </div>
                 <button id="btn-close-shop" class="btn-fechar">Voltar ao Jogo</button>
             </div>
         </div>
     </div>
-
-    <!-- ÁUDIO E LÓGICA DO JOGO -->
-    <script src="script.js"></script>
+    <!-- ÁUDIO, PERGUNTAS E LÓGICA DO JOGO (nesta ordem, pois jogo.js depende dos outros dois) -->
+    <script src="perguntas.js"></script>
+    <script src="audio.js"></script>
+    <script src="jogo.js"></script>
 </body>
 </html>
