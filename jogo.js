@@ -98,8 +98,10 @@ function atualizarPosicao() {
     praga.className = classesPistas[pistaAtual];
 }
 
+const PRAGA_BOTTOM_BASE = 80; // mesmo valor do #praga no CSS — mantém a praga acima dos controles
+
 function atualizarEstiloPraga() {
-    const deslocamentoBottom = 10 + (errosAcumulados * 35);
+    const deslocamentoBottom = PRAGA_BOTTOM_BASE + (errosAcumulados * 35);
     const escala = 1 + (errosAcumulados * 0.25);
     praga.style.bottom = `${deslocamentoBottom}px`;
     praga.style.transform = `scale(${escala})`;
@@ -154,6 +156,12 @@ function iniciarCiclo() {
     obstaculo.className = classesPistas[pistaObs] + " animar-objeto";
     recurso.className = classesPistas[pistaRec] + " animar-objeto";
 
+    // Zona de coleta/colisão calculada a partir da posição real do fazendeiro
+    // na tela (em vez de números fixos), para os itens serem pegos exatamente
+    // onde ele está, e não mais acima.
+    const zonaTopo = player.offsetTop - 20;
+    const zonaBase = player.offsetTop + 40;
+
     colisaoIntervalId = setInterval(() => {
         if (jogoPausado) return;
 
@@ -164,10 +172,10 @@ function iniciarCiclo() {
         // Ímã: com ele ativo, moedas são coletadas automaticamente ao passar
         // pela zona de coleta, mesmo em outra pista (sem "teleportar" o item,
         // o que antes fazia a moeda sumir/reaparecer e o jogador perder o item).
-        const imaColetandoMoeda = imaAtivo && recurso.innerText === "🪙" && topoRec > 420 && topoRec < 500;
+        const imaColetandoMoeda = imaAtivo && recurso.innerText === "🪙" && topoRec > zonaTopo && topoRec < zonaBase;
 
         // Colisão com Obstáculos
-        if (topoObs > 420 && topoObs < 500 && pistaAtual === pistaObs) {
+        if (topoObs > zonaTopo && topoObs < zonaBase && pistaAtual === pistaObs) {
             if (escudosTrator > 0) {
                 // O Trator Novo absorve o impacto em vez de reiniciar o jogo
                 escudosTrator--;
@@ -183,7 +191,7 @@ function iniciarCiclo() {
         }
 
         // Colisão com Recurso (Planta ou Moeda)
-        if ((topoRec > 420 && topoRec < 500 && pistaAtual === pistaRec) || imaColetandoMoeda) {
+        if ((topoRec > zonaTopo && topoRec < zonaBase && pistaAtual === pistaRec) || imaColetandoMoeda) {
             if (recurso.innerText === "🪙") {
                 tocarSomMoeda();
                 moedas += 1;
@@ -220,7 +228,7 @@ function iniciarCiclo() {
         }
 
         // Colisão com Item Especial (Power-up)
-        if (topoEsp > 420 && topoEsp < 500 && pistaAtual === pistaEsp) {
+        if (topoEsp > zonaTopo && topoEsp < zonaBase && pistaAtual === pistaEsp) {
             if (itemEspecial.innerText === "🧲") {
                 ativarIma();
             } else {
@@ -437,5 +445,6 @@ function comprarItem(item, preco) {
 
 // INICIAR O JOGO
 itemEspecial.style.display = "none";
+atualizarEstiloPraga();
 aplicarVelocidadeAnimacao();
 iniciarCiclo();

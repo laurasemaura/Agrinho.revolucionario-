@@ -58,6 +58,17 @@ body {
     font-size: 1.2rem;
 }
 
+#loja-status {
+    position: absolute;
+    top: 55px;
+    right: 15px;
+    z-index: 10;
+    font-size: 0.75rem;
+    color: #ffd166;
+    font-weight: bold;
+    text-align: right;
+}
+
 /* MUNDO E PISTAS */
 #world {
     position: absolute;
@@ -127,12 +138,12 @@ body {
 }
 
 #player {
-    bottom: 30px;
+    bottom: 100px;
     z-index: 5;
 }
 
 #praga {
-    bottom: 10px;
+    bottom: 80px;
     z-index: 6;
     transition: bottom 0.3s ease, transform 0.3s ease, left 0.12s ease-out;
 }
