@@ -151,7 +151,7 @@ const bancoPerguntas = [
       opcoes: [
         "Escolha de variedades resistentes ao estresse hídrico",
         "Aumento do consumo de água sem planejamento",
-        "Investimento em irrigação eficiente e reservatórios de água"
+        "Investimento em reservatórios de água gigantes"
       ],
       correta: 0 },
 

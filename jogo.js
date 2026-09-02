@@ -17,6 +17,10 @@ let imaAtivo = false;
 let emChuvaDeMoedas = false;
 let contadorCiclos = 0;
 
+// ITENS COMPRADOS NA LOJA (efeitos persistentes até reiniciar o jogo)
+let bonusMudas = 0;      // pontos extras por planta coletada (Mudas Especiais)
+let escudosTrator = 0;   // impactos que o Trator Novo absorve sem reiniciar o jogo
+
 // CONTROLE DO LOOP (evita loops duplicados ao pausar/retomar)
 let cicloTimeoutId = null;
 let colisaoIntervalId = null;
@@ -40,6 +44,14 @@ const multiplierTag = document.getElementById("multiplier-tag");
 const powerupStatus = document.getElementById("powerup-status");
 const mundo = document.getElementById("world");
 const highscoreDisplay = document.getElementById("highscore");
+const lojaStatusDisplay = document.getElementById("loja-status");
+
+function atualizarStatusLoja() {
+    const partes = [];
+    if (escudosTrator > 0) partes.push(`🛡️ x${escudosTrator}`);
+    if (bonusMudas > 0) partes.push(`🌱 +${bonusMudas}/planta`);
+    lojaStatusDisplay.innerText = partes.join("  ");
+}
 
 // RECORDE (salvo no navegador)
 let recorde = Number(localStorage.getItem("agroSurfersRecorde")) || 0;
@@ -156,6 +168,14 @@ function iniciarCiclo() {
 
         // Colisão com Obstáculos
         if (topoObs > 420 && topoObs < 500 && pistaAtual === pistaObs) {
+            if (escudosTrator > 0) {
+                // O Trator Novo absorve o impacto em vez de reiniciar o jogo
+                escudosTrator--;
+                atualizarStatusLoja();
+                tocarNota(200, 0.25, "square");
+                obstaculo.className = "";
+                return;
+            }
             tocarNota(150, 0.3, "sawtooth");
             clearInterval(colisaoIntervalId);
             reiniciarJogo("Você bateu no obstáculo!");
@@ -171,7 +191,7 @@ function iniciarCiclo() {
                 redefinirPosicaoRecurso();
             } else {
                 plantasColetadas++;
-                const pontosGanhos = duplicadorAtivo ? 20 : 10;
+                const pontosGanhos = (duplicadorAtivo ? 20 : 10) + bonusMudas;
                 pontuacao += pontosGanhos;
                 scoreDisplay.innerText = pontuacao;
                 atualizarRecordeSeNecessario();
@@ -282,6 +302,9 @@ function reiniciarJogo(mensagem) {
     moedas = 0;
     plantasColetadas = 0;
     errosAcumulados = 0;
+    bonusMudas = 0;
+    escudosTrator = 0;
+    atualizarStatusLoja();
     nivelAtual = 1;
     duracaoAnimacao = 2.5;
     aplicarVelocidadeAnimacao();
@@ -388,14 +411,25 @@ function comprarItem(item, preco) {
         document.getElementById("shop-coins").innerText = moedas;
         tocarNota(880, 0.3);
 
-        if (item === 'muda') alert("🌱 Mudas Especiais compradas! Suas plantas dão bônus!");
-        if (item === 'fertilizante') alert("🧪 Fertilizante aplicado! A praga recua 1 passo!");
-        if (item === 'trator') alert("🚜 Trator novo desbloqueado!");
-
-        if (item === 'fertilizante' && errosAcumulados > 0) {
-            errosAcumulados--;
-            atualizarEstiloPraga();
+        if (item === 'muda') {
+            bonusMudas += 5;
+            alert(`🌱 Mudas Especiais compradas! Cada planta agora vale +${bonusMudas} pontos extras.`);
         }
+        if (item === 'fertilizante') {
+            if (errosAcumulados > 0) {
+                errosAcumulados--;
+                atualizarEstiloPraga();
+                alert("🧪 Fertilizante aplicado! A praga recuou 1 passo.");
+            } else {
+                alert("🧪 Fertilizante aplicado! A praga já está no ponto de partida.");
+            }
+        }
+        if (item === 'trator') {
+            escudosTrator++;
+            alert(`🚜 Trator Novo pronto! Ele vai absorver o próximo impacto sem reiniciar o jogo (${escudosTrator} disponível).`);
+        }
+
+        atualizarStatusLoja();
     } else {
         alert("Moedas insuficientes!");
     }
